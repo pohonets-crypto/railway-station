@@ -61,7 +61,7 @@ class StationViewSet(
         permission_classes=[IsAdminUser],
     )
     def upload_image(self, request, pk=None):
-        """Endpoint for uploading image to specific movie"""
+        """Endpoint for uploading image to specific station"""
         station = self.get_object()
         serializer = self.get_serializer(station, data=request.data)
 

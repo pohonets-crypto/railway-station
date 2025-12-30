@@ -38,7 +38,7 @@ class StationImageUploadTests(TestCase):
 
 
     def test_upload_image_to_station(self):
-        """Test uploading an image to movie"""
+        """Test uploading an image to station"""
         url = image_upload_url(self.station.id)
         with tempfile.NamedTemporaryFile(suffix=".jpg") as ntf:
             img = Image.new("RGB", (10, 10))

@@ -39,7 +39,7 @@ class Train(models.Model):
 def station_image_path(instance: "Station", filename: str) -> str:
     filename = (f"{slugify(instance.name)}-{uuid.uuid4()}"
                 + pathlib.Path(filename).suffix)
-    return str(pathlib.Path("uploads") / "movies" / filename)
+    return str(pathlib.Path("uploads") / "station" / filename)
 
 
 class Station(models.Model):
