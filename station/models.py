@@ -1,6 +1,10 @@
-from django.core.validators import MinValueValidator, MaxValueValidator
+import pathlib
+import uuid
+
+from django.core.validators import MinValueValidator
 from django.db import models
 from rest_framework.exceptions import ValidationError
+from django.utils.text import slugify
 
 from railway_station import settings
 
@@ -14,11 +18,16 @@ class TrainType(models.Model):
 
 class Train(models.Model):
     name = models.CharField(max_length=100)
-    cargo_num = models.IntegerField()
-    places_in_cargo = models.IntegerField()
+    cargo_num = models.IntegerField(
+        validators=[
+            MinValueValidator(1),
+        ]
+    )
+    places_in_cargo = models.IntegerField(
+        validators=[MinValueValidator(1)]
+    )
     train_type = models.ForeignKey(
-        TrainType, on_delete=models.SET_NULL, null=True)
-
+        TrainType, on_delete=models.PROTECT)
 
     def __str__(self):
         return self.name
@@ -27,10 +36,18 @@ class Train(models.Model):
         verbose_name_plural = "Trains"
 
 
+def station_image_path(instance: "Station", filename: str) -> str:
+    filename = (f"{slugify(instance.name)}-{uuid.uuid4()}"
+                + pathlib.Path(filename).suffix)
+    return str(pathlib.Path("uploads") / "movies" / filename)
+
+
 class Station(models.Model):
     name = models.CharField(max_length=100, unique=True)
     latitude = models.FloatField(null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)
+    image = models.ImageField(
+        null=True, upload_to=station_image_path)
 
     def __str__(self):
         return self.name
@@ -55,13 +72,29 @@ class Route(models.Model):
         ]
     )
 
+    def clean(self):
+        if self.source == self.destination:
+            raise ValidationError(
+                "Source and destination must be different."
+            )
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
     def __str__(self):
-        return self.source.name
+        source = self.source.name if self.source else "?"
+        dest = self.destination.name if self.destination else "?"
+        return f"{source} - {dest}"
 
 
 class Crew(models.Model):
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
+
+    @property
+    def full_name(self):
+        return f"{self.first_name} {self.last_name}"
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
@@ -70,23 +103,29 @@ class Crew(models.Model):
 class Journey(models.Model):
     route = models.ForeignKey(
         Route,
-        on_delete=models.SET_NULL,
-        null=True,
+        on_delete=models.PROTECT,
         related_name="journeys",
     )
     train = models.ForeignKey(
         Train,
-        on_delete=models.SET_NULL,
-        null=True,
+        on_delete=models.PROTECT,
         related_name="journeys",
     )
     departure_time = models.DateTimeField()
     arrival_time = models.DateTimeField()
     crew = models.ManyToManyField(Crew, blank=True)
 
+    def clean(self):
+        if self.departure_time >= self.arrival_time:
+            raise ValidationError(
+                "Departure time must be earlier than Arrival time")
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
     def __str__(self):
-        return self.train.name if self.train \
-            else f"Journey #{self.pk} (no train)"
+        return f"{self.route.source.name} - {self.route.destination.name}"
 
 
 class Order(models.Model):
@@ -118,30 +157,55 @@ class Ticket(models.Model):
         ]
     )
     journey = models.ForeignKey(
-        Journey, on_delete=models.SET_NULL, null=True
+        Journey,
+        on_delete=models.CASCADE,
+        null=False,
+        related_name="tickets"
     )
     order = models.ForeignKey(
-        Order, on_delete=models.SET_NULL, null=True
+        Order,
+        on_delete=models.CASCADE,
+        null=False,
+        related_name="tickets"
     )
 
     @staticmethod
     def validate_ticket(cargo, seat, journey, error_to_raise):
-        for ticket_attr_value, ticket_attr_name, journey_attr_name in [
-            (cargo, "cargo", "cargos"),
-            (seat, "seat", "seats_in_cargo"),
-        ]:
-            if journey is None:
-                raise error_to_raise({"journey": "Journey must be set"})
-            count_attrs = getattr(journey, journey_attr_name)
-            if not (1 <= ticket_attr_value <= count_attrs):
-                raise error_to_raise(
-                    {
-                        ticket_attr_name: f"{ticket_attr_name} "
-                                          f"number must be in available range: "
-                                          f"[1, {journey_attr_name}]: "
-                                          f"[1, {count_attrs}]"
-                    }
-                )
+        if journey is None:
+            raise error_to_raise({"journey": "Journey must be set"})
+
+        train = journey.train
+        if train is None:
+            raise error_to_raise({"train": "Journey must have a train"})
+
+        if not (1 <= cargo <= train.cargo_num):
+            raise error_to_raise(
+                {
+                    "cargo": (
+                        f"Cargo number must be in range "
+                        f"[1, {train.cargo_num}]"
+                    )
+                }
+            )
+
+        if not (1 <= seat <= train.places_in_cargo):
+            raise error_to_raise(
+                {
+                    "seat": (
+                        f"Seat number must be in range "
+                        f"[1, {train.places_in_cargo}]"
+                    )
+                }
+            )
+
+        if Ticket.objects.filter(
+            journey=journey,
+            cargo=cargo,
+            seat=seat
+        ).exists():
+            raise error_to_raise(
+                {"seat": "This seat is already taken"}
+            )
 
     def clean(self):
         Ticket.validate_ticket(
@@ -165,11 +229,15 @@ class Ticket(models.Model):
         )
 
     def __str__(self):
-        return self.journey.name if self.journey else f"Ticket {self.pk or ''}"
+        return (f"{self.journey.route.source} "
+                f"- {self.journey.route.destination}") \
+            if self.journey else f"Ticket {self.pk or ''}"
 
     class Meta:
-        unique_together = ("journey", "cargo", "seat")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["journey", "cargo", "seat"],
+                name="unique_seat_per_journey"
+            )
+        ]
         ordering = ["cargo", "seat"]
-
-
-
