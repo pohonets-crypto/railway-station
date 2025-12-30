@@ -1,5 +1,5 @@
 import uuid
-from datetime import timedelta, datetime
+from datetime import timedelta
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -10,17 +10,23 @@ from rest_framework.reverse import reverse
 from rest_framework.test import APIClient
 
 from station.models import Journey, Route, Train, Crew, Station, TrainType
-from station.serializers import JourneyListSerializer, JourneyDetailSerializer, JourneyCreateSerializer
+from station.serializers import (JourneyListSerializer,
+                                 JourneyDetailSerializer,
+                                 JourneyCreateSerializer)
+
 
 JOURNEY_URL = reverse("station:journey-list")
 
+
 def journey_detail_url(journey_id):
     return reverse("station:journey-detail", args=[journey_id])
+
 
 def create_station(name=None):
     return Station.objects.create(
         name=name or f"station-{uuid.uuid4()}"
     )
+
 
 def create_route(**params):
     defaults = {
@@ -31,6 +37,7 @@ def create_route(**params):
     defaults.update(params)
     return Route.objects.create(**defaults)
 
+
 def create_train():
     train_type = TrainType.objects.create(name=f"type-{uuid.uuid4()}")
     return Train.objects.create(
@@ -39,6 +46,7 @@ def create_train():
         places_in_cargo=20,
         train_type=train_type,
     )
+
 
 def sample_journey(**params):
 
@@ -58,7 +66,8 @@ class ModelTest(TestCase):
     def test_journey_str(self):
         journey = sample_journey()
         self.assertEqual(str(journey),
-                         f"{journey.route.source.name} - {journey.route.destination.name}")
+                         f"{journey.route.source.name} "
+                         f"- {journey.route.destination.name}")
 
 
 class UnauthenticatedJourneyApiTests(TestCase):

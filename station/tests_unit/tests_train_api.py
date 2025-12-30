@@ -6,9 +6,13 @@ from rest_framework.reverse import reverse
 from rest_framework.test import APIClient
 
 from station.models import TrainType, Train
-from station.serializers import TrainListSerializer, TrainDetailSerializer, TrainCreateSerializer
+from station.serializers import (TrainListSerializer,
+                                 TrainDetailSerializer,
+                                 TrainCreateSerializer)
+
 
 TRAIN_URL = reverse("station:train-list")
+
 
 def train_detail_url(train_id):
     return reverse("station:train-detail", args=[train_id])
@@ -16,6 +20,7 @@ def train_detail_url(train_id):
 
 def create_train_type(**params):
     return TrainType.objects.create(**params)
+
 
 def create_train(**params):
     defaults = {

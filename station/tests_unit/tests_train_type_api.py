@@ -9,10 +9,13 @@ from rest_framework.test import APIClient
 from station.models import TrainType
 from station.serializers import TrainTypeSerializer
 
+
 TRAIN_TYPE_URL = reverse("station:traintype-list")
+
 
 def create_train_type(**params):
     return TrainType.objects.create(**params)
+
 
 class ModelTest(TestCase):
 
@@ -29,6 +32,7 @@ class UnauthenticatedTrainTypeApiTests(TestCase):
     def test_auth_required(self):
         response = self.client.get(TRAIN_TYPE_URL)
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
 
 class AuthenticatedTrainTypeApiTests(TestCase):
     def setUp(self):

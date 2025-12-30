@@ -18,12 +18,15 @@ from station.models import (Ticket,
                             Order)
 from station.serializers import OrderListSerializer
 
+
 ORDER_URL = reverse("station:order-list")
+
 
 def create_station(name=None):
     return Station.objects.create(
         name=name or f"station-{uuid.uuid4()}"
     )
+
 
 def create_route(**params):
     defaults = {
@@ -34,6 +37,7 @@ def create_route(**params):
     defaults.update(params)
     return Route.objects.create(**defaults)
 
+
 def create_train():
     train_type = TrainType.objects.create(name=f"type-{uuid.uuid4()}")
     return Train.objects.create(
@@ -42,6 +46,7 @@ def create_train():
         places_in_cargo=20,
         train_type=train_type,
     )
+
 
 def sample_journey(**params):
 
@@ -55,6 +60,7 @@ def sample_journey(**params):
     defaults.update(params)
     return Journey.objects.create(**defaults)
 
+
 def create_user(**params):
     defaults = {
         "email": f"user-{uuid.uuid4()}@test.com",
@@ -63,6 +69,7 @@ def create_user(**params):
     defaults.update(params)
     return get_user_model().objects.create_user(**defaults)
 
+
 def create_order(**params):
     defaults = {
         "created_at": timezone.now(),
@@ -70,6 +77,7 @@ def create_order(**params):
     }
     defaults.update(params)
     return Order.objects.create(**defaults)
+
 
 def create_ticket(**params):
     defaults = {

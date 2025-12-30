@@ -13,7 +13,9 @@ from station.serializers import StationSerializer
 def create_station(**params):
     return Station.objects.create(**params)
 
+
 STATION_URL = reverse("station:station-list")
+
 
 class ModelTest(TestCase):
 

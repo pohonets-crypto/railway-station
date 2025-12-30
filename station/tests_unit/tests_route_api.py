@@ -6,17 +6,19 @@ from rest_framework import status
 from rest_framework.reverse import reverse
 
 from rest_framework.test import APIClient
-from yaml import serialize
 
 from station.models import Station, Route
-from station.serializers import RouteSerializer, RouteListSerializer, RouteDetailSerializer
+from station.serializers import RouteListSerializer, RouteDetailSerializer
+
 
 ROUTE_URL = reverse("station:route-list")
+
 
 def create_station(name=None):
     return Station.objects.create(
         name=name or f"station-{uuid.uuid4()}"
     )
+
 
 def create_route(**params):
     defaults = {
@@ -135,6 +137,9 @@ class AdminRouteTest(TestCase):
 
         response = self.client.post(ROUTE_URL, payload)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["source"], payload["source"])
+        self.assertEqual(response.data["destination"], payload["destination"])
+        self.assertEqual(response.data["distance"], payload["distance"])
 
     def test_not_unique_fields_source_and_destination(self):
         station1 = Station.objects.create(name="london")
@@ -145,3 +150,7 @@ class AdminRouteTest(TestCase):
         }
         response = self.client.post(ROUTE_URL, payload)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            response.data["destination"][0].code,
+            "invalid"
+        )
