@@ -78,7 +78,7 @@ WSGI_APPLICATION = "railway_station.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-POSTGRES_HOST = os.environ.get("POSTGRES_HOST", "db")
+POSTGRES_HOST = os.environ.get("POSTGRES_HOST") or "db"
 
 DATABASES = {
     "default": {
@@ -86,8 +86,8 @@ DATABASES = {
         "NAME": os.environ.get("POSTGRES_DB", "railway_station"),
         "USER": os.environ.get("POSTGRES_USER", "railway_station"),
         "PASSWORD": os.environ.get("POSTGRES_PASSWORD", "railway_station"),
-        "HOST": POSTGRES_HOST if POSTGRES_HOST else "localhost",
-        "PORT": os.environ.get("POSTGRES_PORT", "5432"),
+        "HOST": os.environ.get("POSTGRES_HOST", "db"),
+        "PORT": os.environ.get("POSTGRES_PORT", 5432),
     }
 }
 
