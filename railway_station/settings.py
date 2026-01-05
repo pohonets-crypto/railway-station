@@ -78,7 +78,6 @@ WSGI_APPLICATION = "railway_station.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-POSTGRES_HOST = os.environ.get("POSTGRES_HOST") or "db"
 
 DATABASES = {
     "default": {
